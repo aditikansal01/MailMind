@@ -19,25 +19,25 @@
 ## 📸 App Screenshots
 
 ### 🎯 **1. Landing Page Overview**
-![Landing Page - Top Section](./screenshots/1)hero-dashboard-top.png)
+![Landing Page - Top Section](./screenshots/1%29hero-dashboard-top.png)
 *Clean welcome interface with modern gradient design and Gmail connection prompt*
 
-![Landing Page - Complete View](./screenshots/2)hero-dashboard-full.png)  
+![Landing Page - Complete View](./screenshots/2%29hero-dashboard-full.png)  
 *Full landing page showing all features, benefits, and call-to-action*
 
 ### 🔐 **2. Authentication Flow**
-![Google OAuth Integration](./screenshots/3)google-oauth.png)
+![Google OAuth Integration](./screenshots/3%29google-oauth.png)
 *Secure Google OAuth 2.0 authentication with proper Gmail API scopes*
 
 ### ✅ **3. Connection Success**
-![Successfully Connected](./screenshots/4)user-connected.png)
+![Successfully Connected](./screenshots/4%29user-connected.png)
 *Post-authentication confirmation with user profile and ready state*
 
 ### 📧 **4. Email Dashboard**
-![Email Insights - Top Section](./screenshots/5)email-insights-top.png)
+![Email Insights - Top Section](./screenshots/5%29email-insights-top.png)
 *Beautiful email analytics dashboard with smart categorization (upper view)*
 
-![Email Insights - Complete Dashboard](./screenshots/6)email-insights-full.png)
+![Email Insights - Complete Dashboard](./screenshots/6%29email-insights-full.png)
 *Full email management interface with all insights and features visible*
 
 ---
