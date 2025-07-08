@@ -1,5 +1,12 @@
 # 📬 MailMind — Smart Gmail Summarizer
 
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Made With](https://img.shields.io/badge/made%20with-JavaScript-orange)
+![Gmail API](https://img.shields.io/badge/Gmail%20API-v1-red)
+![OAuth 2.0](https://img.shields.io/badge/OAuth-2.0-blue)
+![Privacy First](https://img.shields.io/badge/privacy-first-green)
+
 **MailMind** is a privacy-first Gmail summarizer that helps you intelligently manage your inbox. It connects with your Gmail account, fetches recent emails, and presents them with beautiful, clean insights — all in your browser. No setup. No servers. No data stored.
 
 > ⚡ Built for quick access, smart email management, and peace of mind.
