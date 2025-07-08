@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MailMind - Complete Solution</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .debug-section {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #007bff;
+      text-align: left;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .debug-log {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      background: #ffffff;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .error { color: #dc3545; }
+    .success { color: #28a745; }
+    .warning { color: #ffc107; }
+    .info { color: #17a2b8; }
+    
+    .button-group {
+      margin: 10px 0;
+    }
+    .button-group button {
+      margin: 5px;
+      min-width: 200px;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .status-success { background-color: #28a745; }
+    .status-error { background-color: #dc3545; }
+    .status-warning { background-color: #ffc107; }
+    .status-info { background-color: #17a2b8; }
+  </style>
+</head>
+<body>
+  <h1>📩 MailMind</h1>
+  <p>Complete Gmail Integration Solution</p>
+  
+  <!-- Login Section -->
+  <div id="loginSection">
+    <div class="button-group">
+      <button id="loginRedirectBtn">🔄 Login with Redirect</button>
+      <button id="loginPopupBtn">🪟 Login with Popup</button>
+    </div>
+    <p style="font-size: 14px; color: #666;">
+      Try redirect first. If it loops, use popup method.
+    </p>
+  </div>
+  
+  <!-- User Section -->
+  <div id="userSection" style="display: none;">
+    <h2>Welcome! 🎉</h2>
+    <p id="userInfo"></p>
+    <div class="button-group">
+      <button id="fetchEmailsBtn">📧 Fetch Gmail Messages</button>
+      <button id="forceGmailLoginBtn" style="background-color: #ff9800;">🔑 Force Gmail Login</button>
+      <button id="logoutBtn">🚪 Logout</button>
+    </div>
+    
+    <div id="tokenStatus" style="margin-top: 15px;">
+      <p><span id="tokenIndicator" class="status-indicator"></span><span id="tokenText">Checking access token...</span></p>
+    </div>
+  </div>
+
+  <!-- Debug Section -->
+  <div class="debug-section">
+    <h3>🔍 Debug Information</h3>
+    <div>
+      <strong>Firebase Status:</strong> <span id="firebaseStatus">Loading...</span><br>
+      <strong>Auth State:</strong> <span id="authStatus">Checking...</span><br>
+      <strong>Current URL:</strong> <span id="currentUrl"></span><br>
+      <strong>Access Token:</strong> <span id="accessTokenStatus">None</span>
+    </div>
+    <div class="debug-log" id="debugLog"></div>
+  </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  
+  <script>
+    // Debug logging function
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = `[${timestamp}] ${message}`;
+      console.log(logEntry);
+      
+      const debugLog = document.getElementById('debugLog');
+      const div = document.createElement('div');
+      div.className = type;
+      div.textContent = logEntry;
+      debugLog.appendChild(div);
+      debugLog.scrollTop = debugLog.scrollHeight;
+      
+      // Update status indicators
+      updateStatusIndicators();
+    }
+
+    function updateStatusIndicators() {
+      document.getElementById('currentUrl').textContent = window.location.href;
+      document.getElementById('accessTokenStatus').textContent = window.gmailAccessToken ? 'Available' : 'None';
+    }
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCLei1NU4NLzFRz02todzCqkWVHc51WHUw",
+      authDomain: "mailmind-bdf15.firebaseapp.com",
+      projectId: "mailmind-bdf15",
+      storageBucket: "mailmind-bdf15.firebasestorage.app",
+      messagingSenderId: "84130778618",
+      appId: "1:84130778618:web:a9bd16def2531dbd262843",
+      measurementId: "G-N7C86MCFDK"
+    };
+
+    let auth, provider;
+    let redirectProcessed = false;
+
+    // Initialize Firebase
+    try {
+      firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      
+      // Configure Google provider with Gmail scope
+      provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope("https://www.googleapis.com/auth/gmail.readonly");
+      
+      // Force prompt to ensure fresh tokens
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
+      document.getElementById('firebaseStatus').textContent = 'Initialized';
+      log('✅ Firebase initialized successfully', 'success');
+    } catch (error) {
+      document.getElementById('firebaseStatus').textContent = 'Failed';
+      log(`❌ Firebase initialization error: ${error.message}`, 'error');
+    }
+
+    // Gmail API functions
+    async function fetchGmailMessages(accessToken) {
+      try {
+        log('🔑 Fetching Gmail messages with access token...', 'info');
+        
+        const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Gmail API Error: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        log('📧 Gmail API response received successfully', 'success');
+
+        if (data.messages && data.messages.length > 0) {
+          log(`📬 Found ${data.messages.length} messages:`, 'success');
+          data.messages.forEach((message, index) => {
+            log(`  ${index + 1}. Message ID: ${message.id}`, 'info');
+          });
+          
+          alert(`✅ Successfully fetched ${data.messages.length} email message IDs!\n\nCheck the debug log below for details.`);
+          
+          // Fetch details for first message
+          await fetchMessageDetails(accessToken, data.messages[0].id);
+        } else {
+          log('📭 No messages found in Gmail', 'warning');
+          alert("No messages found in your Gmail inbox.");
+        }
+      } catch (error) {
+        log(`❌ Gmail fetch error: ${error.message}`, 'error');
+        alert(`Error fetching Gmail messages:\n${error.message}`);
+      }
+    }
+
+    async function fetchMessageDetails(accessToken, messageId) {
+      try {
+        log(`📄 Fetching details for message: ${messageId}`, 'info');
+        
+        const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+          const messageData = await response.json();
+          const subject = messageData.payload?.headers?.find(h => h.name === "Subject")?.value || "No subject";
+          const from = messageData.payload?.headers?.find(h => h.name === "From")?.value || "Unknown sender";
+          
+          log(`📄 Sample Email - Subject: "${subject}"`, 'success');
+          log(`📄 From: ${from}`, 'success');
+          log(`📄 Snippet: ${messageData.snippet}`, 'info');
+        }
+      } catch (error) {
+        log(`❌ Error fetching message details: ${error.message}`, 'error');
+      }
+    }
+
+    // UI Management Functions
+    function showLoginSection() {
+      document.getElementById('loginSection').style.display = 'block';
+      document.getElementById('userSection').style.display = 'none';
+      document.getElementById('authStatus').textContent = 'Not signed in';
+      window.gmailAccessToken = null;
+      updateStatusIndicators();
+    }
+
+    function showUserSection(user, accessToken = null) {
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('userSection').style.display = 'block';
+      document.getElementById('userInfo').textContent = `Logged in as: ${user.displayName} (${user.email})`;
+      document.getElementById('authStatus').textContent = `Signed in as ${user.displayName}`;
+      
+      if (accessToken) {
+        window.gmailAccessToken = accessToken;
+        document.getElementById('tokenIndicator').className = 'status-indicator status-success';
+        document.getElementById('tokenText').textContent = 'Access token available - Ready to fetch Gmail!';
+        log('🔑 Access token stored successfully', 'success');
+      } else {
+        document.getElementById('tokenIndicator').className = 'status-indicator status-warning';
+        document.getElementById('tokenText').textContent = 'No access token - Login again for Gmail access';
+        log('⚠️ No access token available', 'warning');
+      }
+      
+      updateStatusIndicators();
+    }
+
+    // Authentication Functions
+    async function handleRedirectLogin() {
+      try {
+        log('🔄 Starting redirect-based login...', 'info');
+        redirectProcessed = false;
+        await auth.signInWithRedirect(provider);
+      } catch (error) {
+        log(`❌ Redirect login error: ${error.message}`, 'error');
+        alert(`Redirect login failed: ${error.message}`);
+      }
+    }
+
+    async function forceGmailLogin() {
+      try {
+        log('🔑 Forcing fresh Gmail login with explicit permissions...', 'info');
+        
+        // Sign out completely first
+        await auth.signOut();
+        log('🚪 Signed out, now requesting fresh Gmail permissions...', 'info');
+        
+        // Wait a moment for sign out to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Create a new provider with forced consent
+        const gmailProvider = new firebase.auth.GoogleAuthProvider();
+        gmailProvider.addScope("https://www.googleapis.com/auth/gmail.readonly");
+        gmailProvider.addScope("email");
+        gmailProvider.addScope("profile");
+        gmailProvider.setCustomParameters({
+          prompt: 'consent select_account',
+          access_type: 'offline',
+          include_granted_scopes: 'true'
+        });
+        
+        const result = await auth.signInWithPopup(gmailProvider);
+        const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+        const user = result.user;
+        const accessToken = credential?.accessToken;
+
+        log(`✅ Force Gmail login successful! User: ${user.displayName}`, 'success');
+        
+        if (accessToken) {
+          log(`🔑 Gmail access token obtained: ${accessToken.substring(0, 20)}...`, 'success');
+          showUserSection(user, accessToken);
+          alert('Success! Gmail access token obtained. You can now fetch emails.');
+        } else {
+          log('❌ Still no access token after forced login', 'error');
+          showUserSection(user, null);
+          alert('Login successful but Gmail access token still not available.\n\nThis might be a scope configuration issue in Firebase Console.');
+        }
+      } catch (error) {
+        log(`❌ Force Gmail login error: ${error.message}`, 'error');
+        alert(`Force Gmail login failed: ${error.message}`);
+      }
+    }
+
+    async function handlePopupLogin() {
+      try {
+        log('🪟 Starting popup-based login...', 'info');
+        
+        // Force sign out first to ensure fresh login with all scopes
+        if (auth.currentUser) {
+          log('🔄 Signing out current user to force fresh login...', 'info');
+          await auth.signOut();
+        }
+        
+        // Configure provider with explicit Gmail scope and force fresh consent
+        const freshProvider = new firebase.auth.GoogleAuthProvider();
+        freshProvider.addScope("https://www.googleapis.com/auth/gmail.readonly");
+        freshProvider.setCustomParameters({
+          prompt: 'consent', // Force consent screen to appear
+          access_type: 'offline'
+        });
+        
+        const result = await auth.signInWithPopup(freshProvider);
+        const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+        const user = result.user;
+        const accessToken = credential?.accessToken;
+
+        log(`✅ Popup login successful! User: ${user.displayName}`, 'success');
+        
+        if (accessToken) {
+          log(`🔑 Access token obtained: ${accessToken.substring(0, 20)}...`, 'success');
+          showUserSection(user, accessToken);
+        } else {
+          log('❌ No access token returned - trying alternative method...', 'error');
+          // Try to get token using getAccessToken method
+          try {
+            const token = await user.getIdToken();
+            log('� Attempting to use ID token as fallback...', 'warning');
+            showUserSection(user, null);
+            alert('Login successful but no Gmail access token received.\n\nThis might be due to scope permissions. Please:\n1. Logout\n2. Login again\n3. Make sure to grant Gmail permissions');
+          } catch (tokenError) {
+            log(`❌ Token retrieval failed: ${tokenError.message}`, 'error');
+            showUserSection(user, null);
+          }
+        }
+      } catch (error) {
+        log(`❌ Popup login error: ${error.message}`, 'error');
+        
+        if (error.code === 'auth/popup-blocked') {
+          alert('Popup was blocked! Please:\n1. Allow popups for this site\n2. Or try the "Login with Redirect" option');
+        } else if (error.code === 'auth/popup-closed-by-user') {
+          log('ℹ️ Popup closed by user', 'info');
+        } else {
+          alert(`Popup login failed: ${error.message}`);
+        }
+      }
+    }
+
+    async function handleLogout() {
+      try {
+        log('🚪 Starting logout...', 'info');
+        await auth.signOut();
+        showLoginSection();
+        log('✅ Logout successful', 'success');
+        alert('Logged out successfully!');
+      } catch (error) {
+        log(`❌ Logout error: ${error.message}`, 'error');
+        alert(`Logout failed: ${error.message}`);
+      }
+    }
+
+    // Event Listeners and Initialization
+    document.addEventListener("DOMContentLoaded", () => {
+      log('🚀 MailMind initializing...', 'info');
+      updateStatusIndicators();
+
+      // Check for redirect result immediately
+      auth.getRedirectResult().then((result) => {
+        redirectProcessed = true;
+        
+        if (result && result.user) {
+          log(`✅ Redirect result found! User: ${result.user.displayName}`, 'success');
+          const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+          const accessToken = credential?.accessToken;
+          showUserSection(result.user, accessToken);
+          
+          if (accessToken) {
+            log(`🔑 Access token from redirect: ${accessToken.substring(0, 20)}...`, 'success');
+          }
+        } else {
+          log('ℹ️ No redirect result found', 'info');
+        }
+      }).catch((error) => {
+        log(`❌ Redirect result error: ${error.message}`, 'error');
+        redirectProcessed = true;
+      });
+
+      // Auth state listener
+      auth.onAuthStateChanged((user) => {
+        if (redirectProcessed) {
+          if (user && document.getElementById('userSection').style.display === 'none') {
+            log(`👤 Auth state: User signed in - ${user.displayName}`, 'info');
+            showUserSection(user);
+          } else if (!user) {
+            log('👤 Auth state: No user signed in', 'info');
+            showLoginSection();
+          }
+        }
+      });
+
+      // Button event listeners
+      document.getElementById('loginRedirectBtn').addEventListener('click', handleRedirectLogin);
+      document.getElementById('loginPopupBtn').addEventListener('click', handlePopupLogin);
+      
+      document.getElementById('fetchEmailsBtn').addEventListener('click', () => {
+        if (window.gmailAccessToken) {
+          fetchGmailMessages(window.gmailAccessToken);
+        } else {
+          log('❌ No access token for Gmail API', 'error');
+          alert('No access token available!\n\nClick "Force Gmail Login" to get fresh Gmail permissions.');
+        }
+      });
+      
+      document.getElementById('forceGmailLoginBtn').addEventListener('click', forceGmailLogin);
+      
+      document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+      log('✅ Initialization complete', 'success');
+    });
+  </script>
+</body>
+</html>
