@@ -1,11 +1,10 @@
 // src/firebaseConfig.js
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyCLei1NU4NLzFRz02todzCqkWVHc51WHUw",
-  authDomain: "mailmind-bdf15.firebaseapp.com",
-  projectId: "mailmind-bdf15",
-  storageBucket: "mailmind-bdf15.firebasestorage.app",
-  messagingSenderId: "84130778618",
-  appId: "1:84130778618:web:a9bd16def2531dbd262843",
-  measurementId: "G-N7C86MCFDK"
+  apiKey: "AIzaSyAAXc6FstBwRR-tcmZAud066cbY9o6AwMWI0",
+  authDomain: "mailmind-app.firebaseapp.com",
+  projectId: "mailmind-app",
+  storageBucket: "mailmind-app.firebasestorage.app",
+  messagingSenderId: "401268133229",
+  appId: "1:401268133229:web:853a78069c6f7a81d21e64"
 };
